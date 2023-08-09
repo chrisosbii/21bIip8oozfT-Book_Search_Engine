@@ -16,13 +16,18 @@ const resolvers = {
         return { token, user };
     },
     // saveBook: parameter of book authors, description, title, bookId, image, and link; returns User type 
-    saveBook: async (parent, { userId, authors, description, title, bookId, image, link  }) => {
+    saveBook: async (parent, { authors, description, title, bookId, image, link  }, context) => {
+
         const book = await Book.create({ authors, description, title, bookId, image, link });
 
-        return User.findOneAndUpdate(
-            { _id: userId },
-            { $addToSet: { savedBooks: book._id } }
-        );
+        if (context.user){
+            return User.findOneAndUpdate(
+                { _id: userId },
+                { $addToSet: { savedBooks: book._id } }
+            );
+        }
+
+        throw AuthenticationError;
     },
     // removeBook: parameter of bookId; returns User type
     removeBook: async (parent, { bookId }, context) => {
