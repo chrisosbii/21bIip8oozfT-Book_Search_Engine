@@ -1,36 +1,56 @@
 const { Book, User } = require('../models');
+const { signToken, AuthenticationError } = require('../utils/auth');
 
 const resolvers = {
   Query: {
-    // get single user
-    tech: async () => {
-      return User.find({});
-    },
-    // login as a user
-
-    matchups: async (parent, { _id }) => {
-      const params = _id ? { _id } : {};
-      return Matchup.find(params);
+    // get the current user
+    me: async (parent, { username }) => {
+      return User.findOne({ username });
     },
   },
   Mutation: {
     // create a single user
-
-    // save a book to a user's 'savedBooks' field
-
-    // remove a book from 'savedBooks'
-    
-    createMatchup: async (parent, args) => {
-      const matchup = await Matchup.create(args);
-      return matchup;
+    addUser: async (parent, { username, email, password }) => {
+        const user = await User.create({ username, email, password });
+        const token = signToken(user);
+        return { token, user };
     },
-    createVote: async (parent, { _id, techNum }) => {
-      const vote = await Matchup.findOneAndUpdate(
-        { _id },
-        { $inc: { [`tech${techNum}_votes`]: 1 } },
-        { new: true }
-      );
-      return vote;
+    // saveBook: parameter of book authors, description, title, bookId, image, and link; returns User type 
+    saveBook: async (parent, { userId, authors, description, title, bookId, image, link  }) => {
+        const book = await Book.create({ authors, description, title, bookId, image, link });
+
+        return User.findOneAndUpdate(
+            { _id: userId },
+            { $addToSet: { savedBooks: book._id } }
+        );
+    },
+    // removeBook: parameter of bookId; returns User type
+    removeBook: async (parent, { bookId }, context) => {
+        if (context.user){
+            return User.findOneAndUpdate(
+                { _id: context.user._id },
+                { $pull: { books: { bookId: bookId } } },
+                { new: true }
+            );
+        }
+    },
+    // login: accepts an email and password and returns an auth type
+    login: async (parent, { email, password }) => {
+        const user = await User.findOne({ email });
+  
+        if (!user) {
+          throw AuthenticationError;
+        }
+  
+        const correctPw = await user.isCorrectPassword(password);
+  
+        if (!correctPw) {
+          throw AuthenticationError;
+        }
+  
+        const token = signToken(user);
+  
+        return { token, user };
     },
   },
 };
