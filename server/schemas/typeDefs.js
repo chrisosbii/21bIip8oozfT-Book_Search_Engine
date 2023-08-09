@@ -13,18 +13,23 @@ const typeDefs = `
     username: String!
     email: String!
     password: String
-    savedBooks: [Book]
-    matchups(_id: String): [Matchup]
+    savedBooks(_id: String): [Book]
   }
 
+  type Auth {
+    token: ID!
+    user: User
+  }
+  
   type Query {
-    tech: [Tech]
-    matchups(_id: String): [Matchup]
+    me: User
   }
 
   type Mutation {
-    createMatchup(tech1: String!, tech2: String!): Matchup
-    createVote(_id: String!, techNum: Int!): Matchup
+    addUser(username: String!, email: String!, password: String!): Auth
+    login(email: String!, password: String!): Auth
+    saveBook(authors: [String!], description: String!, title: String!, bookId: String!, image: String!, link: String!): User
+    removeBook(bookId: String!): User
   }
 `;
 
